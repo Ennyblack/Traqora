@@ -119,6 +119,10 @@ fn test_release_payment_success() {
     // Release successfully
     contracts.booking.release_payment_to_airline(&booking_id);
     let booking = contracts.booking.get_booking(&booking_id).unwrap();
+
+    // Test authorized retrieval
+    let authorized_booking = contracts.booking.get_booking_authorized(&booking_id, &actors.passenger);
+    assert_eq!(authorized_booking.booking_id, booking_id);
     assert_eq!(booking.status, Symbol::new(&env, "completed"));
     assert_eq!(booking.amount_escrowed, 0);
 }

@@ -184,10 +184,9 @@ impl BookingContract {
         let mut booking = BookingStorage::get(&env, booking_id).expect("Booking not found");
 
         assert!(
-            booking.status == symbol_short!("pending"),
+            booking.status == symbol_short!("pending") || booking.status == symbol_short!("submitting"),
             "Already paid or cancelled"
         );
-
         booking.passenger.require_auth();
 
         let token_client = token::Client::new(&env, &booking.token);
@@ -333,8 +332,37 @@ impl BookingContract {
     }
 
     // Helper to get booking details
+    pub fn list_bookings(env: Env, start_id: u64, limit: u32) -> Vec<Booking> {
+        let mut result = Vec::new(&env);
+        let max_limit = std::cmp::min(limit, 100);
+        let mut count = 0;
+        let mut current_id = start_id;
+        while count < max_limit {
+            if let Some(booking) = Self::get_booking(env.clone(), current_id) {
+                result.push_back(booking);
+                count += 1;
+                current_id += 1;
+            } else {
+                break;
+            }
+        }
+        result
+    }
+
     pub fn get_booking(env: Env, booking_id: u64) -> Option<Booking> {
         BookingStorage::get(&env, booking_id)
+    }
+
+    // Authorized retrieval: return a booking only to its owner (passenger), airline, or an explicitly authorized operator/oracle.
+    pub fn get_booking_authorized(env: Env, booking_id: u64, caller: Address) -> Booking {
+        caller.require_auth();
+        let booking = BookingStorage::get(&env, booking_id).expect("Booking not found");
+        let trusted_oracle = BookingStorage::get_trusted_oracle(&env);
+        let is_authorized = caller == booking.passenger
+            || caller == booking.airline
+            || trusted_oracle.map_or(false, |oracle| oracle == caller);
+        assert!(is_authorized, "Not authorized to view booking details");
+        booking
     }
 
     // Original API wrappers for backward compatibility

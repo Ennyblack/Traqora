@@ -337,6 +337,26 @@ impl BookingContract {
         BookingStorage::get(&env, booking_id)
     }
 
+    // Get bookings with pagination (stable, bounded order by booking_id ascending)
+    pub fn get_bookings_paginated(env: Env, start_after: u64, limit: u32) -> Vec<Booking> {
+        let max_limit = if limit == 0 || limit > 100 { 50 } else { limit };
+        let next_id = env
+            .storage()
+            .instance()
+            .get::<_, u64>(&symbol_short!("next_id"))
+            .unwrap_or(1);
+
+        let mut result = Vec::new(&env);
+        let mut current_id = start_after + 1;
+        while current_id < next_id && result.len() < max_limit {
+            if let Some(booking) = BookingStorage::get(&env, current_id) {
+                result.push_back(booking);
+            }
+            current_id += 1;
+        }
+        result
+    }
+
     // Original API wrappers for backward compatibility
     pub fn cancel_booking(env: Env, passenger: Address, booking_id: u64) {
         passenger.require_auth();

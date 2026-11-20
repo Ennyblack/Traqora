@@ -96,6 +96,21 @@ impl FlightBookingContract {
             .get(&DataKey::Booking(booking_id))
     }
 
+    pub fn get_bookings_paginated(env: Env, start_after: u64, limit: u32) -> soroban_sdk::Vec<Booking> {
+        let max_limit = if limit == 0 || limit > 100 { 50 } else { limit };
+        let next_id: u64 = env.storage().instance().get(&DataKey::NextId).unwrap_or(1);
+
+        let mut result = soroban_sdk::Vec::new(&env);
+        let mut current_id = start_after + 1;
+        while current_id < next_id && result.len() < max_limit {
+            if let Some(booking) = Self::get_booking(env.clone(), current_id) {
+                result.push_back(booking);
+            }
+            current_id += 1;
+        }
+        result
+    }
+
     pub fn init_upgrade_owner(env: Env, owner: Address) {
         access::UpgradeTimelock::init_upgrade_owner(&env, &owner);
     }

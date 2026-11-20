@@ -87,3 +87,48 @@ fn test_refund_flow() {
     assert_eq!(booking.status, Symbol::new(&env, "refunded"));
     assert_eq!(booking.amount_escrowed, 0);
 }
+
+#[test]
+fn test_get_bookings_paginated_normal_and_boundary() {
+    let env = new_env();
+    let actors = generate_actors(&env);
+    let contracts = register_contracts(&env);
+    initialize_token(&env, &contracts.token, &actors.admin);
+
+    let price = 10_0000000i128;
+    let mut ids = soroban_sdk::Vec::new(&env);
+    for i in 0..5 {
+        let flight = Symbol::new(&env, &format!("FL00{}", i));
+        let id = contracts.booking.create_booking(
+            &actors.passenger,
+            &actors.airline,
+            &flight,
+            &Symbol::new(&env, "JFK"),
+            &Symbol::new(&env, "LAX"),
+            &1704067200,
+            &price,
+            &contracts.token.address,
+        );
+        ids.push_back(id);
+    }
+
+    // Test pagination starting after 0 with limit 2
+    let page1 = contracts.booking.get_bookings_paginated(&0, &2);
+    assert_eq!(page1.len(), 2);
+    assert_eq!(page1.get(0).unwrap().booking_id, 1);
+    assert_eq!(page1.get(1).unwrap().booking_id, 2);
+
+    // Test pagination starting after 2 with limit 2
+    let page2 = contracts.booking.get_bookings_paginated(&2, &2);
+    assert_eq!(page2.len(), 2);
+    assert_eq!(page2.get(0).unwrap().booking_id, 3);
+    assert_eq!(page2.get(1).unwrap().booking_id, 4);
+
+    // Test boundary: limit 0 defaults to max/bounded behavior (returns remaining or up to 50)
+    let page_zero_limit = contracts.booking.get_bookings_paginated(&0, &0);
+    assert_eq!(page_zero_limit.len(), 5);
+
+    // Test out of bounds start_after
+    let page_out_of_bounds = contracts.booking.get_bookings_paginated(&100, &10);
+    assert_eq!(page_out_of_bounds.len(), 0);
+}

@@ -69,6 +69,58 @@ fn test_pay_for_booking_nonexistent_should_panic() {
 }
 
 #[test]
+fn test_authorized_booking_retrieval_success() {
+    let env = new_env();
+    env.mock_all_auths();
+    let actors = generate_actors(&env);
+    let contracts = register_contracts(&env);
+    initialize_token(&env, &contracts.token, &actors.admin);
+
+    let price = 100_0000000i128;
+    let booking_id = contracts.booking.create_booking(
+        &actors.passenger,
+        &actors.airline,
+        &Symbol::new(&env, "FL123"),
+        &Symbol::new(&env, "JFK"),
+        &Symbol::new(&env, "LAX"),
+        &1704067200,
+        &price,
+        &contracts.token.address,
+    );
+
+    let b1 = contracts.booking.get_booking_authorized(&booking_id, &actors.passenger);
+    assert!(b1.is_some());
+
+    let b2 = contracts.booking.get_booking_authorized(&booking_id, &actors.airline);
+    assert!(b2.is_some());
+}
+
+#[test]
+#[should_panic(expected = "Unauthorized booking access")]
+fn test_authorized_booking_retrieval_unauthorized_panics() {
+    let env = new_env();
+    env.mock_all_auths();
+    let actors = generate_actors(&env);
+    let contracts = register_contracts(&env);
+    initialize_token(&env, &contracts.token, &actors.admin);
+
+    let price = 100_0000000i128;
+    let booking_id = contracts.booking.create_booking(
+        &actors.passenger,
+        &actors.airline,
+        &Symbol::new(&env, "FL123"),
+        &Symbol::new(&env, "JFK"),
+        &Symbol::new(&env, "LAX"),
+        &1704067200,
+        &price,
+        &contracts.token.address,
+    );
+
+    let outsider = Address::generate(&env);
+    contracts.booking.get_booking_authorized(&booking_id, &outsider);
+}
+
+#[test]
 #[should_panic(expected = "Invalid booking status")]
 fn test_release_payment_invalid_status_should_panic() {
     let env = new_env();

@@ -88,10 +88,10 @@ fn test_authorized_booking_retrieval_success() {
         &contracts.token.address,
     );
 
-    let b1 = contracts.booking.get_booking_authorized(&booking_id, &actors.passenger);
+    let b1 = contracts.booking.get_booking(&actors.passenger, &booking_id);
     assert!(b1.is_some());
 
-    let b2 = contracts.booking.get_booking_authorized(&booking_id, &actors.airline);
+    let b2 = contracts.booking.get_booking(&actors.airline, &booking_id);
     assert!(b2.is_some());
 }
 
@@ -117,7 +117,7 @@ fn test_authorized_booking_retrieval_unauthorized_panics() {
     );
 
     let outsider = Address::generate(&env);
-    contracts.booking.get_booking_authorized(&booking_id, &outsider);
+    contracts.booking.get_booking(&outsider, &booking_id);
 }
 
 #[test]

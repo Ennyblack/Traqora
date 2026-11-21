@@ -338,7 +338,7 @@ impl BookingContract {
         let booking = BookingStorage::get(&env, booking_id)?;
         assert!(
             caller == booking.passenger || caller == booking.airline,
-            "Not authorized to view booking"
+            "Unauthorized booking access"
         );
         Some(booking)
     }

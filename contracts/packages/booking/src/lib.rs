@@ -332,9 +332,49 @@ impl BookingContract {
             .extend_ttl(&booking_id, /* delta = */ 0);
     }
 
-    // Helper to get booking details
-    pub fn get_booking(env: Env, booking_id: u64) -> Option<Booking> {
-        BookingStorage::get(&env, booking_id)
+    // Helper to get booking details with authorization (owner or explicitly authorized operator)
+    pub fn get_booking(env: Env, booking_id: u64, caller: Address) -> Option<Booking> {
+        caller.require_auth();
+        let booking = BookingStorage::get(&env, booking_id)?;
+        assert!(
+            caller == booking.passenger || caller == booking.airline,
+            "Not authorized to view booking"
+        );
+        Some(booking)
+    }
+
+    // List bookings for a passenger with pagination (offset and limit)
+    pub fn list_traveler_bookings(
+        env: Env,
+        passenger: Address,
+        offset: u32,
+        limit: u32,
+        all_booking_ids: Vec<u64>,
+    ) -> Vec<Booking> {
+        let mut result = Vec::new(&env);
+        let max_limit = if limit > 50 { 50 } else { limit };
+        let mut count: u32 = 0;
+        let mut skipped: u32 = 0;
+
+        let mut i: u32 = 0;
+        while i < all_booking_ids.len() {
+            let booking_id = all_booking_ids.get(i).unwrap();
+            if let Some(booking) = BookingStorage::get(&env, booking_id) {
+                if booking.passenger == passenger {
+                    if skipped < offset {
+                        skipped += 1;
+                    } else if count < max_limit {
+                        result.push_back(booking);
+                        count += 1;
+                    } else {
+                        break;
+                    }
+                }
+            }
+            i += 1;
+        }
+
+        result
     }
 
     // Original API wrappers for backward compatibility

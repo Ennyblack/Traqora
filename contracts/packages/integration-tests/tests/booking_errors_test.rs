@@ -118,7 +118,7 @@ fn test_release_payment_success() {
 
     // Release successfully
     contracts.booking.release_payment_to_airline(&booking_id);
-    let booking = contracts.booking.get_booking(&booking_id).unwrap();
+    let booking = contracts.booking.get_booking_authorized(&booking_id, &actors.passenger);
     assert_eq!(booking.status, Symbol::new(&env, "completed"));
     assert_eq!(booking.amount_escrowed, 0);
 }
@@ -146,7 +146,7 @@ fn test_refund_passenger_window_and_status_checks() {
 
     // Pending -> refundable, but amount_escrowed = 0
     contracts.booking.refund_passenger(&booking_id);
-    let booking = contracts.booking.get_booking(&booking_id).unwrap();
+    let booking = contracts.booking.get_booking_authorized(&booking_id, &actors.passenger);
     assert_eq!(booking.status, Symbol::new(&env, "refunded"));
     assert_eq!(booking.amount_escrowed, 0);
 
@@ -218,7 +218,7 @@ fn test_cancel_and_complete_wrappers() {
     contracts
         .booking
         .cancel_booking(&actors.passenger, &booking_id);
-    let b = contracts.booking.get_booking(&booking_id).unwrap();
+    let b = contracts.booking.get_booking_authorized(&booking_id, &actors.passenger);
     assert_eq!(b.status, Symbol::new(&env, "refunded"));
 
     // Complete wrapper path

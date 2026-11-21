@@ -1,4 +1,5 @@
 module.exports = {
+  transformIgnorePatterns: ["/node_modules/(?!uint8array-extras)/"],
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/tests', '<rootDir>/src'],

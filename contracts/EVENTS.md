@@ -473,10 +473,11 @@ rather than a numeric id.
 
 ---
 
-## Querying Events via Stellar SDK
+## Handling Submission Timeouts and Reconciling Pending Outcomes
 
-Events are queryable using the Soroban RPC `getEvents` endpoint. All events are emitted as
-`contract` type events and are indexed by contract ID and topic.
+When a payment or wallet transaction submission times out, the client records the outcome as `pending` and prevents new payments until the transaction status is reconciled against the Soroban RPC network.
+
+### Querying Events via Stellar SDK
 
 ```js
 // Generic helper — works for any contract/action pair

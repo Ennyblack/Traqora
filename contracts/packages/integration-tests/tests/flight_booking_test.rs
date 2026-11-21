@@ -353,12 +353,12 @@ fn test_flight_booking_get_bookings_paginated() {
         client.reserve_seat(&passenger, &flight, &seat, &1_000);
     }
 
-    let page = client.get_bookings_paginated(&0, &2);
+    let page = client.get_bookings_paginated(&passenger, &0, &2);
     assert_eq!(page.len(), 2);
     assert_eq!(page.get(0).unwrap().booking_id, 1);
     assert_eq!(page.get(1).unwrap().booking_id, 2);
 
-    let page_next = client.get_bookings_paginated(&2, &5);
+    let page_next = client.get_bookings_paginated(&passenger, &2, &5);
     assert_eq!(page_next.len(), 2);
     assert_eq!(page_next.get(0).unwrap().booking_id, 3);
     assert_eq!(page_next.get(1).unwrap().booking_id, 4);

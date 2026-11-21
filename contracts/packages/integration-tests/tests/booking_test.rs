@@ -113,22 +113,22 @@ fn test_get_bookings_paginated_normal_and_boundary() {
     }
 
     // Test pagination starting after 0 with limit 2
-    let page1 = contracts.booking.get_bookings_paginated(&0, &2);
+    let page1 = contracts.booking.get_bookings_paginated(&actors.passenger, &0, &2);
     assert_eq!(page1.len(), 2);
     assert_eq!(page1.get(0).unwrap().booking_id, 1);
     assert_eq!(page1.get(1).unwrap().booking_id, 2);
 
     // Test pagination starting after 2 with limit 2
-    let page2 = contracts.booking.get_bookings_paginated(&2, &2);
+    let page2 = contracts.booking.get_bookings_paginated(&actors.passenger, &2, &2);
     assert_eq!(page2.len(), 2);
     assert_eq!(page2.get(0).unwrap().booking_id, 3);
     assert_eq!(page2.get(1).unwrap().booking_id, 4);
 
     // Test boundary: limit 0 defaults to max/bounded behavior (returns remaining or up to 50)
-    let page_zero_limit = contracts.booking.get_bookings_paginated(&0, &0);
+    let page_zero_limit = contracts.booking.get_bookings_paginated(&actors.passenger, &0, &0);
     assert_eq!(page_zero_limit.len(), 5);
 
     // Test out of bounds start_after
-    let page_out_of_bounds = contracts.booking.get_bookings_paginated(&100, &10);
+    let page_out_of_bounds = contracts.booking.get_bookings_paginated(&actors.passenger, &100, &10);
     assert_eq!(page_out_of_bounds.len(), 0);
 }

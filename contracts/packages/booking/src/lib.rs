@@ -337,8 +337,8 @@ impl BookingContract {
         BookingStorage::get(&env, booking_id)
     }
 
-    // Get bookings with pagination (stable, bounded order by booking_id ascending)
-    pub fn get_bookings_paginated(env: Env, start_after: u64, limit: u32) -> Vec<Booking> {
+    // Get traveler's bookings with pagination (stable, bounded order by booking_id ascending)
+    pub fn get_bookings_paginated(env: Env, traveler: Address, start_after: u64, limit: u32) -> Vec<Booking> {
         let max_limit = if limit == 0 || limit > 100 { 50 } else { limit };
         let next_id = env
             .storage()
@@ -350,7 +350,9 @@ impl BookingContract {
         let mut current_id = start_after + 1;
         while current_id < next_id && result.len() < max_limit {
             if let Some(booking) = BookingStorage::get(&env, current_id) {
-                result.push_back(booking);
+                if booking.passenger == traveler {
+                    result.push_back(booking);
+                }
             }
             current_id += 1;
         }

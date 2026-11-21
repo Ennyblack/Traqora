@@ -87,3 +87,68 @@ fn test_refund_flow() {
     assert_eq!(booking.status, Symbol::new(&env, "refunded"));
     assert_eq!(booking.amount_escrowed, 0);
 }
+
+#[test]
+fn test_get_bookings_paginated() {
+    let env = new_env();
+    let actors = generate_actors(&env);
+    let contracts = register_contracts(&env);
+    initialize_token(&env, &contracts.token, &actors.admin);
+
+    let price = 50_0000000i128;
+
+    // Create 3 bookings
+    let id1 = contracts.booking.create_booking(
+        &actors.passenger,
+        &actors.airline,
+        &Symbol::new(&env, "FL1"),
+        &Symbol::new(&env, "JFK"),
+        &Symbol::new(&env, "LAX"),
+        &1704067200,
+        &price,
+        &contracts.token.address,
+    );
+    let id2 = contracts.booking.create_booking(
+        &actors.passenger,
+        &actors.airline,
+        &Symbol::new(&env, "FL2"),
+        &Symbol::new(&env, "LAX"),
+        &Symbol::new(&env, "SFO"),
+        &1704070800,
+        &price,
+        &contracts.token.address,
+    );
+    let id3 = contracts.booking.create_booking(
+        &actors.passenger,
+        &actors.airline,
+        &Symbol::new(&env, "FL3"),
+        &Symbol::new(&env, "SFO"),
+        &Symbol::new(&env, "ORD"),
+        &1704074400,
+        &price,
+        &contracts.token.address,
+    );
+
+    assert_eq!(id1, 1);
+    assert_eq!(id2, 2);
+    assert_eq!(id3, 3);
+
+    // Test normal path pagination from start_id 1 with limit 2
+    let page1 = contracts.booking.get_bookings_paginated(&1, &2);
+    assert_eq!(page1.len(), 2);
+    assert_eq!(page1.get(0).unwrap().booking_id, 1);
+    assert_eq!(page1.get(1).unwrap().booking_id, 2);
+
+    // Test subsequent page
+    let page2 = contracts.booking.get_bookings_paginated(&3, &2);
+    assert_eq!(page2.len(), 1);
+    assert_eq!(page2.get(0).unwrap().booking_id, 3);
+
+    // Test out-of-bounds start_id
+    let empty_page = contracts.booking.get_bookings_paginated(&999, &10);
+    assert_eq!(empty_page.len(), 0);
+
+    // Test zero limit (should default to max_limit or handle gracefully without failing)
+    let default_limit_page = contracts.booking.get_bookings_paginated(&1, &0);
+    assert!(default_limit_page.len() >= 3);
+}

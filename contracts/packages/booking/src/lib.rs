@@ -184,11 +184,9 @@ impl BookingContract {
         let mut booking = BookingStorage::get(&env, booking_id).expect("Booking not found");
 
         assert!(
-            booking.status == symbol_short!("pending"),
-            "Already paid or cancelled"
+            booking.status == symbol_short!("pending") || booking.status == symbol_short!("timeout"),
+            "Already paid, confirmed, or cancelled"
         );
-
-        booking.status = symbol_short!("pending");
 
         booking.passenger.require_auth();
 
@@ -337,6 +335,21 @@ impl BookingContract {
     // Helper to get booking details
     pub fn get_booking(env: Env, booking_id: u64) -> Option<Booking> {
         BookingStorage::get(&env, booking_id)
+    }
+
+    // Reconcile transaction submission timeout / unknown outcome state
+    pub fn reconcile_timeout(env: Env, booking_id: u64, confirmed: bool) {
+        let mut booking = BookingStorage::get(&env, booking_id).expect("Booking not found");
+        assert!(
+            booking.status == symbol_short!("pending") || booking.status == symbol_short!("timeout"),
+            "Invalid status for reconciliation"
+        );
+        booking.status = if confirmed {
+            symbol_short!("confirmed")
+        } else {
+            symbol_short!("pending")
+        };
+        BookingStorage::set(&env, booking_id, &booking);
     }
 
     // Original API wrappers for backward compatibility
@@ -605,17 +618,5 @@ impl BookingContract {
         );
     }
 
-    // Reconcile transaction submission timeout outcome
-    pub fn reconcile_payment(env: Env, caller: Address, booking_id: u64, success: bool) {
-        caller.require_auth();
-        let mut booking = BookingStorage::get(&env, booking_id).expect("Booking not found");
-        assert!(caller == booking.passenger || caller == booking.airline, "Not authorized to reconcile");
 
-        if success {
-            booking.status = symbol_short!("confirmed");
-        } else {
-            booking.status = symbol_short!("pending");
-        }
-        BookingStorage::set(&env, booking_id, &booking);
-    }
 }

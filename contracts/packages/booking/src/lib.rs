@@ -188,6 +188,8 @@ impl BookingContract {
             "Already paid or cancelled"
         );
 
+        booking.status = symbol_short!("pending");
+
         booking.passenger.require_auth();
 
         let token_client = token::Client::new(&env, &booking.token);
@@ -601,5 +603,19 @@ impl BookingContract {
                 refunded_amount,
             ),
         );
+    }
+
+    // Reconcile transaction submission timeout outcome
+    pub fn reconcile_payment(env: Env, caller: Address, booking_id: u64, success: bool) {
+        caller.require_auth();
+        let mut booking = BookingStorage::get(&env, booking_id).expect("Booking not found");
+        assert!(caller == booking.passenger || caller == booking.airline, "Not authorized to reconcile");
+
+        if success {
+            booking.status = symbol_short!("confirmed");
+        } else {
+            booking.status = symbol_short!("pending");
+        }
+        BookingStorage::set(&env, booking_id, &booking);
     }
 }

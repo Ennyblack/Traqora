@@ -2,6 +2,37 @@ use integration_tests::{generate_actors, initialize_token, new_env, register_con
 use soroban_sdk::{testutils::Ledger, Symbol};
 
 #[test]
+fn test_transaction_submission_timeout_pending_reconciliation() {
+    let env = new_env();
+    env.mock_all_auths();
+    let actors = generate_actors(&env);
+    let token_client = register_token_contract(&env, &actors.admin);
+    let booking_client = register_booking_contract(&env);
+
+    booking_client.create_booking(
+        &actors.traveler,
+        &actors.airline,
+        &symbol_short!("FL123"),
+        &symbol_short!("JFK"),
+        &symbol_short!("LAX"),
+        &1704067200,
+        &1000000000,
+        &token_client.address,
+    );
+
+    token_client.mint(&actors.admin, &actors.traveler, &1000000000);
+
+    // First payment call
+    booking_client.pay_for_booking(&1);
+
+    // Reconcile as failed to reset pending/unknown outcome
+    booking_client.reconcile_payment(&actors.traveler, &1, &false);
+
+    // After reconciliation, payment can proceed normally
+    booking_client.pay_for_booking(&1);
+}
+
+#[test]
 fn test_payment_escrow_flow() {
     let env = new_env();
     let actors = generate_actors(&env);

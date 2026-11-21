@@ -180,12 +180,34 @@ impl BookingContract {
     }
 
     // Accept payment for the booking and hold in escrow
+    pub fn mark_booking_submitting(env: Env, booking_id: u64) {
+        let mut booking = BookingStorage::get(&env, booking_id).expect("Booking not found");
+        booking.passenger.require_auth();
+        assert!(
+            booking.status == symbol_short!("pending"),
+            "Booking not pending"
+        );
+        booking.status = symbol_short!("submitting");
+        BookingStorage::set(&env, booking_id, &booking);
+    }
+
+    pub fn reconcile_booking(env: Env, booking_id: u64) {
+        let mut booking = BookingStorage::get(&env, booking_id).expect("Booking not found");
+        booking.passenger.require_auth();
+        assert!(
+            booking.status == symbol_short!("submitting"),
+            "Booking not submitting"
+        );
+        booking.status = symbol_short!("pending");
+        BookingStorage::set(&env, booking_id, &booking);
+    }
+
     pub fn pay_for_booking(env: Env, booking_id: u64) {
         let mut booking = BookingStorage::get(&env, booking_id).expect("Booking not found");
 
         assert!(
-            booking.status == symbol_short!("pending"),
-            "Already paid or cancelled"
+            booking.status == symbol_short!("pending") || booking.status == symbol_short!("submitting"),
+            "Already paid, submitting, or cancelled"
         );
 
         booking.passenger.require_auth();

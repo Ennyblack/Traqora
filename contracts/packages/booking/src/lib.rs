@@ -337,6 +337,43 @@ impl BookingContract {
         BookingStorage::get(&env, booking_id)
     }
 
+    // Paginated list of traveler bookings by scanning up to the current next_id counter
+    pub fn get_traveler_bookings(
+        env: Env,
+        passenger: Address,
+        limit: u32,
+        offset: u32,
+    ) -> Vec<Booking> {
+        let mut result = Vec::new(&env);
+        let next_id: u64 = env
+            .storage()
+            .instance()
+            .get(&symbol_short!("next_id"))
+            .unwrap_or(1);
+
+        let mut skipped = 0u32;
+        let mut collected = 0u32;
+        let mut id = 1u64;
+
+        while id < next_id {
+            if let Some(booking) = BookingStorage::get(&env, id) {
+                if booking.passenger == passenger {
+                    if skipped < offset {
+                        skipped += 1;
+                    } else if collected < limit {
+                        result.push_back(booking);
+                        collected += 1;
+                    } else {
+                        break;
+                    }
+                }
+            }
+            id += 1;
+        }
+
+        result
+    }
+
     // Original API wrappers for backward compatibility
     pub fn cancel_booking(env: Env, passenger: Address, booking_id: u64) {
         passenger.require_auth();

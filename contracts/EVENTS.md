@@ -45,7 +45,11 @@ enums are the vocabulary, the tables are the actual event log.
 
 ---
 
-## Booking Contract (`booking`)
+## Booking Contract (`booking`) — with pagination support
+
+Pagination parameters (`limit`, `start_after`) are supported on list and query endpoints to bound response sizes.
+
+## Booking Contract (`booking`) original tables
 
 | topics                      | data fields                                                              | description                              |
 |-----------------------------|--------------------------------------------------------------------------|------------------------------------------|

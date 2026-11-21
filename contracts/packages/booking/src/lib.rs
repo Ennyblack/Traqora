@@ -334,6 +334,26 @@ impl BookingContract {
 
     // Helper to get booking details
     pub fn get_booking(env: Env, booking_id: u64) -> Option<Booking> {
+        let booking = Self::internal_get_booking(&env, booking_id)?;
+        booking.passenger.require_auth();
+        Some(booking)
+    }
+
+    /// Retrieves booking details ensuring the caller is authorized as the passenger, airline, or admin.
+    /// Returns the booking object if authorized, or panics if unauthorized.
+    pub fn get_booking_authorized(env: Env, caller: Address, booking_id: u64) -> Option<Booking> {
+        caller.require_auth();
+        let booking = Self::internal_get_booking(&env, booking_id)?;
+        if caller != booking.passenger && caller != booking.airline {
+            let admin: Address = env.storage().instance().get(&Symbol::new(&env, "Admin")).unwrap_or_else(|| booking.airline.clone());
+            if caller != admin {
+                panic!("Unauthorized to view booking");
+            }
+        }
+        Some(booking)
+    }
+
+    fn internal_get_booking(env: &Env, booking_id: u64) -> Option<Booking> {
         BookingStorage::get(&env, booking_id)
     }
 

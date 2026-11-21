@@ -352,6 +352,13 @@ impl BookingContract {
         BookingStorage::set(&env, booking_id, &booking);
     }
 
+    #[cfg(test)]
+    pub fn set_status(env: Env, booking_id: u64, status: Symbol) {
+        let mut booking = BookingStorage::get(&env, booking_id).expect("Booking not found");
+        booking.status = status;
+        BookingStorage::set(&env, booking_id, &booking);
+    }
+
     // Original API wrappers for backward compatibility
     pub fn cancel_booking(env: Env, passenger: Address, booking_id: u64) {
         passenger.require_auth();
@@ -617,6 +624,4 @@ impl BookingContract {
             ),
         );
     }
-
-
 }
